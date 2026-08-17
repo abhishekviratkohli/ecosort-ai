@@ -17,7 +17,7 @@ const authHeaders = () => {
 };
 
 export const api = {
-  // Auth
+  // --- Auth ---
   async login(email, password) {
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
@@ -56,12 +56,12 @@ export const api = {
     return res.json();
   },
 
-  // Prediction & Classification
-  async predictWaste({ image, sampleKey, metadata }) {
+  // --- Prediction & Classification ---
+  async predictWaste({ image, sampleKey, classification, metadata }) {
     const res = await fetch(`${API_BASE}/predict`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ image, sampleKey, metadata })
+      body: JSON.stringify({ image, sampleKey, classification, metadata })
     });
     return res.json();
   },
@@ -97,13 +97,13 @@ export const api = {
     return res.json();
   },
 
-  // Community & Leaderboards
+  // --- Community & Leaderboards ---
   async getLeaderboard(scope = 'all') {
     const res = await fetch(`${API_BASE}/community/leaderboard?scope=${scope}`);
     return res.json();
   },
 
-  // Recycling Centers Locator
+  // --- Recycling Centers Locator ---
   async getNearbyCenters({ lat, lng, category, radius } = {}) {
     const params = new URLSearchParams();
     if (lat) params.append('lat', lat);
@@ -114,17 +114,97 @@ export const api = {
     return res.json();
   },
 
-  // Waste Catalog
+  // --- Waste Catalog ---
   async getCatalog() {
     const res = await fetch(`${API_BASE}/waste-catalog`);
     return res.json();
   },
 
-  // Admin Metrics
+  // --- Admin Management Console ---
   async getAdminMetrics() {
     const res = await fetch(`${API_BASE}/admin/metrics`, {
       headers: authHeaders()
     });
     return res.json();
+  },
+
+  async getAdminUsers() {
+    const res = await fetch(`${API_BASE}/admin/users`, {
+      headers: authHeaders()
+    });
+    return res.json();
+  },
+
+  async updateUserRole(userId, role) {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}/role`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ role })
+    });
+    return res.json();
+  },
+
+  async addRecyclingCenter(centerData) {
+    const res = await fetch(`${API_BASE}/admin/centers`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(centerData)
+    });
+    return res.json();
+  },
+
+  async updateRecyclingCenter(id, centerData) {
+    const res = await fetch(`${API_BASE}/admin/centers/${id}`, {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify(centerData)
+    });
+    return res.json();
+  },
+
+  async deleteRecyclingCenter(id) {
+    const res = await fetch(`${API_BASE}/admin/centers/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders()
+    });
+    return res.json();
+  },
+
+  async getMunicipalAlerts() {
+    const res = await fetch(`${API_BASE}/admin/alerts`);
+    return res.json();
+  },
+
+  async addMunicipalAlert(alertData) {
+    const res = await fetch(`${API_BASE}/admin/alerts`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(alertData)
+    });
+    return res.json();
+  },
+
+  async deleteMunicipalAlert(id) {
+    const res = await fetch(`${API_BASE}/admin/alerts/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders()
+    });
+    return res.json();
+  },
+
+  async downloadAuditCSV() {
+    const token = getAuthToken();
+    const res = await fetch(`${API_BASE}/admin/export-csv`, {
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+    });
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `municipal_waste_segregation_audit_${Date.now()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
   }
 };

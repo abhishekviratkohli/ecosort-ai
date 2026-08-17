@@ -16,28 +16,27 @@ function calculateDistanceKm(lat1, lon1, lat2, lon2) {
 }
 
 // GET /api/centers/nearby
-router.get('/nearby', (req, res) => {
+router.get('/nearby', async (req, res) => {
   try {
-    const userLat = parseFloat(req.query.lat) || 28.6139; // Default New Delhi / center
+    const userLat = parseFloat(req.query.lat) || 28.6139; // Default New Delhi / city center
     const userLng = parseFloat(req.query.lng) || 77.2090;
     const category = req.query.category || 'All';
-    const radius = parseFloat(req.query.radius) || 25; // km
+    const radius = parseFloat(req.query.radius) || 50; // km
 
-    let centers = store.centers.map(c => {
-      const distance = calculateDistanceKm(userLat, userLng, c.latitude, c.longitude);
+    const rawCenters = await store.getRecyclingCenters({ category });
+
+    let centers = rawCenters.map(c => {
+      const centerObj = c.toObject ? c.toObject() : { ...c };
+      const cLat = centerObj.lat || centerObj.latitude || 28.6139;
+      const cLng = centerObj.lng || centerObj.longitude || 77.2090;
+      const distance = calculateDistanceKm(userLat, userLng, cLat, cLng);
       return {
-        ...c,
+        ...centerObj,
+        latitude: cLat,
+        longitude: cLng,
         distanceKm: distance
       };
     });
-
-    // Filter by category if not 'All'
-    if (category && category !== 'All') {
-      centers = centers.filter(c =>
-        c.category.toLowerCase() === category.toLowerCase() ||
-        c.acceptedCategories.some(ac => ac.toLowerCase() === category.toLowerCase())
-      );
-    }
 
     // Filter by radius
     centers = centers.filter(c => c.distanceKm <= radius);

@@ -3,7 +3,7 @@ const store = require('../models/store');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'ecosort_ai_super_secret_jwt_key_2026';
 
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -13,7 +13,7 @@ const authenticateToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = store.findUserById(decoded.id);
+    const user = await store.findUserById(decoded.id);
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid session: User no longer exists' });
     }
@@ -24,14 +24,14 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
-const optionalAuth = (req, res, next) => {
+const optionalAuth = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
   if (token) {
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
-      const user = store.findUserById(decoded.id);
+      const user = await store.findUserById(decoded.id);
       if (user) {
         req.user = user;
       }
@@ -43,8 +43,15 @@ const optionalAuth = (req, res, next) => {
 };
 
 const requireAdmin = (req, res, next) => {
-  if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).json({ success: false, message: 'Access denied: Admin role required' });
+  if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'super_admin')) {
+    return res.status(403).json({ success: false, message: 'Access denied: Municipal Administrator credentials required' });
+  }
+  next();
+};
+
+const requireSuperAdmin = (req, res, next) => {
+  if (!req.user || req.user.role !== 'super_admin') {
+    return res.status(403).json({ success: false, message: 'Access denied: Super Administrator credentials required' });
   }
   next();
 };
@@ -53,5 +60,6 @@ module.exports = {
   JWT_SECRET,
   authenticateToken,
   optionalAuth,
-  requireAdmin
+  requireAdmin,
+  requireSuperAdmin
 };

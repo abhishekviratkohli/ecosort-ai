@@ -6,28 +6,44 @@ const store = require('../models/store');
 const { JWT_SECRET, authenticateToken } = require('../middleware/auth');
 
 // POST /api/auth/register
-router.post('/register', (req, res) => {
+router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role, institution } = req.body;
+    const { name, email, password, role, institution, adminSecretKey } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
     }
 
-    const existingUser = store.findUserByEmail(email);
+    const cleanEmail = email.toLowerCase().trim();
+    const existingUser = await store.findUserByEmail(cleanEmail);
     if (existingUser) {
       return res.status(409).json({ success: false, message: 'An account with this email already exists' });
     }
 
-    const user = store.createUser({ name, email, password, role, institution });
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    const user = await store.createUser({
+      name,
+      email: cleanEmail,
+      password: hashedPassword,
+      role,
+      institution,
+      adminSecretKey
+    });
 
-    const safeUser = { ...user };
-    delete safeUser.passwordHash;
+    const token = jwt.sign(
+      { id: user.id || user._id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    const safeUser = user.toObject ? user.toObject() : { ...user };
+    delete safeUser.password;
 
     res.status(201).json({
       success: true,
-      message: 'Registration successful! Welcome to EcoSort AI.',
+      message: user.role === 'super_admin' 
+        ? '👑 Welcome Super Administrator! Full municipal control privileges unlocked.' 
+        : 'Registration successful! Welcome to EcoSort AI.',
       token,
       user: safeUser
     });
@@ -38,7 +54,7 @@ router.post('/register', (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -46,20 +62,32 @@ router.post('/login', (req, res) => {
       return res.status(400).json({ success: false, message: 'Email and password are required' });
     }
 
-    const user = store.findUserByEmail(email);
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await store.findUserByEmail(cleanEmail);
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
-    const isMatch = bcrypt.compareSync(password, user.passwordHash);
+    // Compare with bcrypt or plaintext fallback for seeded users
+    const isMatch = bcrypt.compareSync(password, user.password) || user.password === password;
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    // Auto-elevate super admin if logging in
+    if (cleanEmail === store.SUPER_ADMIN_EMAIL.toLowerCase() && user.role !== 'super_admin') {
+      user.role = 'super_admin';
+      await store.updateUserRole(user.id || user._id, 'super_admin');
+    }
 
-    const safeUser = { ...user };
-    delete safeUser.passwordHash;
+    const token = jwt.sign(
+      { id: user.id || user._id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    const safeUser = user.toObject ? user.toObject() : { ...user };
+    delete safeUser.password;
 
     res.json({
       success: true,
@@ -74,65 +102,44 @@ router.post('/login', (req, res) => {
 });
 
 // GET /api/auth/me
-router.get('/me', authenticateToken, (req, res) => {
-  const safeUser = { ...req.user };
-  delete safeUser.passwordHash;
-
-  // Enrich badges with details
-  const enrichedBadges = safeUser.badges.map(userBadge => {
-    const badgeDef = store.badges.find(b => b.id === userBadge.badgeId) || {};
-    return {
-      ...badgeDef,
-      unlockedAt: userBadge.unlockedAt
-    };
-  });
-
-  res.json({
-    success: true,
-    user: {
-      ...safeUser,
-      badges: enrichedBadges
-    }
-  });
-});
-
-// PUT /api/auth/profile
-router.put('/profile', authenticateToken, (req, res) => {
+router.get('/me', authenticateToken, async (req, res) => {
   try {
-    const { name, institution } = req.body;
-    const updates = {};
-    if (name) updates.name = name;
-    if (institution) updates.institution = institution;
+    const user = await store.findUserById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
 
-    const updatedUser = store.updateUser(req.user.id, updates);
-    const safeUser = { ...updatedUser };
-    delete safeUser.passwordHash;
+    const safeUser = user.toObject ? user.toObject() : { ...user };
+    delete safeUser.password;
 
     res.json({
       success: true,
-      message: 'Profile updated successfully',
       user: safeUser
     });
   } catch (err) {
-    console.error('Profile update error:', err);
-    res.status(500).json({ success: false, message: 'Error updating profile' });
+    res.status(500).json({ success: false, message: 'Error retrieving user' });
   }
 });
 
-// GET /api/auth/demo-users (For quick switching in presentations)
-router.get('/demo-users', (req, res) => {
-  const demoList = store.users.map(u => ({
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    role: u.role,
-    institution: u.institution,
-    ecoPoints: u.ecoPoints,
-    currentStreak: u.currentStreak,
-    scans: u.stats.totalScans,
-    co2SavedKg: u.stats.totalCo2SavedKg
-  }));
-  res.json({ success: true, demoUsers: demoList });
+// GET /api/auth/demo-users
+router.get('/demo-users', async (req, res) => {
+  try {
+    const list = await store.getAllUsers();
+    const demoList = list.map(u => ({
+      id: u.id || u._id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      institution: u.institution,
+      ecoPoints: u.ecoPoints,
+      currentStreak: u.currentStreak,
+      scans: u.stats?.totalScans || 0,
+      co2SavedKg: u.stats?.totalCo2SavedKg || 0
+    }));
+    res.json({ success: true, demoUsers: demoList });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error loading demo users' });
+  }
 });
 
 module.exports = router;

@@ -1,239 +1,242 @@
-const fs = require('fs');
-const path = require('path');
+/**
+ * EcoSort AI - Resilient Data Store & MongoDB Synchronization Layer
+ */
+
 const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
+const { connectDB } = require('./db');
+const { User, ScanHistory, RecyclingCenter, MunicipalAlert } = require('./schemas');
 
-const taxonomyData = require('../data/waste_taxonomy.json');
-const centersData = require('../data/recycling_centers.json');
+const SUPER_ADMIN_EMAIL = 'abhisheksingh.gwl3@gmail.com';
+const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY || 'ECOSORT_ADMIN_2026';
 
-// In-Memory Data Store with initial seed data
-class Store {
-  constructor() {
-    this.users = [];
-    this.predictions = [];
-    this.centers = centersData.centers || [];
-    this.taxonomy = taxonomyData.categories || [];
-    this.badges = [
-      {
-        id: 'seedling_sorter',
-        title: 'Seedling Sorter',
-        icon: '🌱',
-        description: 'Completed your first smart waste scan',
-        category: 'milestone'
-      },
-      {
-        id: 'week_warrior',
-        title: 'Week Warrior',
-        icon: '⚡',
-        description: 'Maintained a 7-day daily segregation streak',
-        category: 'streak'
-      },
-      {
-        id: 'master_recycler',
-        title: 'Master Recycler',
-        icon: '♻️',
-        description: 'Sorted 20 recyclable plastic/metal/paper items correctly',
-        category: 'recycling'
-      },
-      {
-        id: 'urban_miner',
-        title: 'Urban Miner',
-        icon: '💎',
-        description: 'Diverted electronic waste containing precious metals',
-        category: 'ewaste'
-      },
-      {
-        id: 'carbon_champion',
-        title: 'Carbon Champion',
-        icon: '🌍',
-        description: 'Offset more than 10 kg of CO2 equivalent emissions',
-        category: 'carbon'
-      },
-      {
-        id: 'zero_waste_hero',
-        title: 'Zero Waste Hero',
-        icon: '👑',
-        description: 'Accumulated 1,000+ Eco-Points on the platform',
-        category: 'points'
-      }
-    ];
-
-    this.seedInitialData();
+// In-Memory Fallback Cache & Default Seed Data
+let users = [
+  {
+    id: 'usr_super_000',
+    _id: 'usr_super_000',
+    name: 'Abhishek Singh (Super Admin)',
+    email: SUPER_ADMIN_EMAIL,
+    password: bcrypt.hashSync('superpassword', 10),
+    role: 'super_admin',
+    institution: 'City Municipal Solid Waste HQ',
+    ecoPoints: 2500,
+    currentStreak: 45,
+    longestStreak: 45,
+    lastScanDate: new Date().toISOString(),
+    badges: ['super_admin_crest', 'zero_waste_hero', 'plastic_diverter'],
+    stats: {
+      totalScans: 350,
+      totalCo2SavedKg: 185.4,
+      totalWaterSavedLiters: 4200,
+      totalPlasticDivertedKg: 64.2,
+      totalOrganicCompostedKg: 95.0,
+      totalEWasteRecoveredKg: 26.2
+    },
+    createdAt: new Date('2026-01-01').toISOString()
+  },
+  {
+    id: 'usr_admin_003',
+    _id: 'usr_admin_003',
+    name: 'Vikram Joshi (City Officer)',
+    email: 'admin@greenward.gov',
+    password: bcrypt.hashSync('adminpassword', 10),
+    role: 'admin',
+    institution: 'Municipal Corporation (Ward 4)',
+    ecoPoints: 1200,
+    currentStreak: 20,
+    longestStreak: 20,
+    lastScanDate: new Date().toISOString(),
+    badges: ['admin_badge', 'circuit_miner'],
+    stats: {
+      totalScans: 180,
+      totalCo2SavedKg: 92.5,
+      totalWaterSavedLiters: 2100,
+      totalPlasticDivertedKg: 32.0,
+      totalOrganicCompostedKg: 45.0,
+      totalEWasteRecoveredKg: 15.5
+    },
+    createdAt: new Date('2026-01-15').toISOString()
+  },
+  {
+    id: 'usr_aarav_001',
+    _id: 'usr_aarav_001',
+    name: 'Aarav Sharma',
+    email: 'aarav@ecogreen.org',
+    password: bcrypt.hashSync('password123', 10),
+    role: 'citizen',
+    institution: 'Greenwood Heights Society',
+    ecoPoints: 520,
+    currentStreak: 6,
+    longestStreak: 12,
+    lastScanDate: new Date(Date.now() - 3600000).toISOString(),
+    badges: ['plastic_diverter', 'streak_7d'],
+    stats: {
+      totalScans: 48,
+      totalCo2SavedKg: 24.5,
+      totalWaterSavedLiters: 580,
+      totalPlasticDivertedKg: 8.4,
+      totalOrganicCompostedKg: 12.0,
+      totalEWasteRecoveredKg: 4.1
+    },
+    createdAt: new Date('2026-02-01').toISOString()
+  },
+  {
+    id: 'usr_priya_002',
+    _id: 'usr_priya_002',
+    name: 'Priya Patel',
+    email: 'priya@techcampus.edu',
+    password: bcrypt.hashSync('password123', 10),
+    role: 'citizen',
+    institution: 'Apex Tech University',
+    ecoPoints: 890,
+    currentStreak: 15,
+    longestStreak: 15,
+    lastScanDate: new Date().toISOString(),
+    badges: ['compost_master', 'streak_14d'],
+    stats: {
+      totalScans: 92,
+      totalCo2SavedKg: 46.2,
+      totalWaterSavedLiters: 1100,
+      totalPlasticDivertedKg: 15.2,
+      totalOrganicCompostedKg: 28.0,
+      totalEWasteRecoveredKg: 3.0
+    },
+    createdAt: new Date('2026-02-10').toISOString()
   }
+];
 
-  seedInitialData() {
-    const salt = bcrypt.genSaltSync(10);
-    
-    // Seed Demo Users
-    const userAarav = {
-      id: 'usr_aarav_001',
-      name: 'Aarav Sharma',
-      email: 'aarav.eco@example.com',
-      passwordHash: bcrypt.hashSync('Password123!', salt),
-      role: 'citizen',
-      institution: 'Delhi Technological University',
-      ecoPoints: 520,
-      currentStreak: 6,
-      longestStreak: 12,
-      lastScanDate: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(), // 4 hrs ago
-      stats: {
-        totalScans: 28,
-        totalCo2SavedKg: 8.45,
-        totalWaterSavedLiters: 142.0,
-        totalPlasticDivertedKg: 2.3,
-        totalOrganicCompostedKg: 4.8,
-        totalEWasteRecoveredKg: 0.8
-      },
-      badges: [
-        { badgeId: 'seedling_sorter', unlockedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString() },
-        { badgeId: 'master_recycler', unlockedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString() }
-      ],
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString()
-    };
+let predictions = [];
 
-    const userPriya = {
-      id: 'usr_priya_002',
-      name: 'Priya Verma',
-      email: 'priya.green@example.com',
-      passwordHash: bcrypt.hashSync('Password123!', salt),
-      role: 'institution_member',
-      institution: 'Greenwood International Campus',
-      ecoPoints: 890,
-      currentStreak: 15,
-      longestStreak: 15,
-      lastScanDate: new Date().toISOString(),
-      stats: {
-        totalScans: 54,
-        totalCo2SavedKg: 19.8,
-        totalWaterSavedLiters: 320.0,
-        totalPlasticDivertedKg: 5.1,
-        totalOrganicCompostedKg: 12.4,
-        totalEWasteRecoveredKg: 1.4
-      },
-      badges: [
-        { badgeId: 'seedling_sorter', unlockedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 25).toISOString() },
-        { badgeId: 'week_warrior', unlockedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 8).toISOString() },
-        { badgeId: 'urban_miner', unlockedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString() },
-        { badgeId: 'carbon_champion', unlockedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString() }
-      ],
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 45).toISOString()
-    };
-
-    const userAdmin = {
-      id: 'usr_admin_003',
-      name: 'Dr. Ramesh Iyer',
-      email: 'admin@ecosort.ai',
-      passwordHash: bcrypt.hashSync('AdminSecure2026!', salt),
-      role: 'admin',
-      institution: 'Municipal Solid Waste Corporation',
-      ecoPoints: 1450,
-      currentStreak: 21,
-      longestStreak: 21,
-      lastScanDate: new Date().toISOString(),
-      stats: {
-        totalScans: 92,
-        totalCo2SavedKg: 34.6,
-        totalWaterSavedLiters: 580.0,
-        totalPlasticDivertedKg: 11.2,
-        totalOrganicCompostedKg: 24.0,
-        totalEWasteRecoveredKg: 3.2
-      },
-      badges: [
-        { badgeId: 'seedling_sorter', unlockedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 50).toISOString() },
-        { badgeId: 'week_warrior', unlockedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 40).toISOString() },
-        { badgeId: 'master_recycler', unlockedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString() },
-        { badgeId: 'urban_miner', unlockedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 15).toISOString() },
-        { badgeId: 'carbon_champion', unlockedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString() },
-        { badgeId: 'zero_waste_hero', unlockedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString() }
-      ],
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 60).toISOString()
-    };
-
-    this.users.push(userAarav, userPriya, userAdmin);
-
-    // Seed Sample Historic Predictions for Aarav
-    this.predictions.push(
-      {
-        id: 'pred_001',
-        userId: userAarav.id,
-        imageUrl: '/samples/sample_pet_bottle.jpg',
-        category: 'Plastic',
-        subItem: 'PET Beverage Bottle (Type 1)',
-        confidence: 0.974,
-        binColor: 'Blue',
-        co2SavedGrams: 82.5,
-        waterSavedLiters: 1.4,
-        pointsAwarded: 15,
-        markedDisposed: true,
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString()
-      },
-      {
-        id: 'pred_002',
-        userId: userAarav.id,
-        imageUrl: '/samples/sample_banana_peel.jpg',
-        category: 'Organic',
-        subItem: 'Fruit & Vegetable Peels',
-        confidence: 0.982,
-        binColor: 'Green',
-        co2SavedGrams: 35.0,
-        waterSavedLiters: 0.5,
-        pointsAwarded: 10,
-        markedDisposed: true,
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 28).toISOString()
-      },
-      {
-        id: 'pred_003',
-        userId: userAarav.id,
-        imageUrl: '/samples/sample_smartphone.jpg',
-        category: 'E-Waste',
-        subItem: 'Smartphone / Portable Electronics',
-        confidence: 0.941,
-        binColor: 'Yellow',
-        co2SavedGrams: 420.0,
-        waterSavedLiters: 8.5,
-        pointsAwarded: 30,
-        markedDisposed: true,
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 52).toISOString()
-      },
-      {
-        id: 'pred_004',
-        userId: userAarav.id,
-        imageUrl: '/samples/sample_cardboard.jpg',
-        category: 'Paper',
-        subItem: 'Corrugated Shipping Boxes',
-        confidence: 0.958,
-        binColor: 'Blue',
-        co2SavedGrams: 95.0,
-        waterSavedLiters: 2.1,
-        pointsAwarded: 15,
-        markedDisposed: true,
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 76).toISOString()
-      }
-    );
+let centers = [
+  {
+    id: 'ctr_001',
+    _id: 'ctr_001',
+    name: 'E-Waste & Precious Metals Recovery Facility',
+    address: 'Plot 42, Green Electronics Zone, Phase II',
+    phone: '+91 98234-56781',
+    lat: 28.6139,
+    lng: 77.2090,
+    acceptedMaterials: ['E-Waste', 'Hazardous', 'Metal'],
+    buybackPrices: {
+      eWastePerKg: 120,
+      metalPerKg: 35,
+      plasticPerKg: 0,
+      paperPerKg: 0,
+      glassPerKg: 0
+    },
+    verified: true,
+    active: true,
+    operatingHours: 'Mon-Sat: 09:00 - 18:00'
+  },
+  {
+    id: 'ctr_002',
+    _id: 'ctr_002',
+    name: 'Apex Polymer Reprocessing Center',
+    address: 'Gate 3, Industrial Area Sector 18',
+    phone: '+91 98112-34567',
+    lat: 28.6250,
+    lng: 77.2180,
+    acceptedMaterials: ['Plastic', 'Paper', 'Glass'],
+    buybackPrices: {
+      plasticPerKg: 18,
+      paperPerKg: 12,
+      glassPerKg: 6,
+      eWastePerKg: 0,
+      metalPerKg: 0
+    },
+    verified: true,
+    active: true,
+    operatingHours: 'Mon-Sun: 08:00 - 20:00'
+  },
+  {
+    id: 'ctr_003',
+    _id: 'ctr_003',
+    name: 'City Bio-Methanation & Compost Plant',
+    address: 'Organic Processing Yard, Ward 7',
+    phone: '+91 98765-43210',
+    lat: 28.6010,
+    lng: 77.2250,
+    acceptedMaterials: ['Organic'],
+    buybackPrices: {
+      plasticPerKg: 0,
+      paperPerKg: 0,
+      glassPerKg: 0,
+      eWastePerKg: 0,
+      metalPerKg: 0
+    },
+    verified: true,
+    active: true,
+    operatingHours: 'Daily: 06:00 - 18:00'
   }
+];
 
-  // User Operations
-  findUserByEmail(email) {
-    return this.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+let municipalAlerts = [
+  {
+    id: 'alt_001',
+    _id: 'alt_001',
+    title: 'Ward 4 Plastic Contamination Drive',
+    message: 'Dedicated single-use plastic collection drive this Saturday across Greenwood Sector.',
+    zone: 'Ward 4',
+    severity: 'info',
+    active: true,
+    createdAt: new Date().toISOString()
   }
+];
 
-  findUserById(id) {
-    return this.users.find(u => u.id === id);
+// Helper to determine role with Super Admin priority
+function resolveRole(email, requestedRole, secretKey) {
+  if (email && email.toLowerCase().trim() === SUPER_ADMIN_EMAIL.toLowerCase()) {
+    return 'super_admin';
   }
+  if (secretKey && secretKey === ADMIN_SECRET_KEY) {
+    return 'admin';
+  }
+  if (requestedRole === 'admin' && secretKey === ADMIN_SECRET_KEY) {
+    return 'admin';
+  }
+  return 'citizen';
+}
 
-  createUser({ name, email, password, role = 'citizen', institution = '' }) {
-    const salt = bcrypt.genSaltSync(10);
-    const newUser = {
-      id: 'usr_' + uuidv4().slice(0, 8),
-      name,
-      email,
-      passwordHash: bcrypt.hashSync(password, salt),
-      role,
-      institution: institution || 'Independent Eco Champion',
-      ecoPoints: 10, // Welcome bonus
+const store = {
+  SUPER_ADMIN_EMAIL,
+  ADMIN_SECRET_KEY,
+
+  // --- Users ---
+  async findUserByEmail(email) {
+    const cleanEmail = (email || '').toLowerCase().trim();
+    const db = await connectDB();
+    if (db) {
+      const user = await User.findOne({ email: cleanEmail });
+      if (user) return user;
+    }
+    return users.find(u => u.email.toLowerCase() === cleanEmail) || null;
+  },
+
+  async findUserById(id) {
+    const db = await connectDB();
+    if (db) {
+      const user = await User.findById(id).catch(() => null);
+      if (user) return user;
+    }
+    return users.find(u => u.id === id || u._id === id) || null;
+  },
+
+  async createUser(userData) {
+    const cleanEmail = (userData.email || '').toLowerCase().trim();
+    const role = resolveRole(cleanEmail, userData.role, userData.adminSecretKey);
+
+    const newUserObj = {
+      id: 'usr_' + Date.now(),
+      name: userData.name,
+      email: cleanEmail,
+      password: userData.password,
+      role: role,
+      institution: userData.institution || 'Green Community',
+      ecoPoints: role === 'super_admin' ? 1000 : 20,
       currentStreak: 1,
       longestStreak: 1,
       lastScanDate: new Date().toISOString(),
+      badges: role === 'super_admin' ? ['super_admin_crest', 'welcome_badge'] : ['welcome_badge'],
       stats: {
         totalScans: 0,
         totalCo2SavedKg: 0,
@@ -242,101 +245,301 @@ class Store {
         totalOrganicCompostedKg: 0,
         totalEWasteRecoveredKg: 0
       },
-      badges: [
-        { badgeId: 'seedling_sorter', unlockedAt: new Date().toISOString() }
-      ],
       createdAt: new Date().toISOString()
     };
-    this.users.push(newUser);
-    return newUser;
-  }
 
-  updateUser(id, updates) {
-    const idx = this.users.findIndex(u => u.id === id);
-    if (idx === -1) return null;
-    this.users[idx] = { ...this.users[idx], ...updates };
-    return this.users[idx];
-  }
+    const db = await connectDB();
+    if (db) {
+      try {
+        const saved = await User.create(newUserObj);
+        return saved;
+      } catch (err) {
+        console.warn('MongoDB user create fallback to memory:', err.message);
+      }
+    }
 
-  // Prediction Operations
-  addPrediction(prediction) {
-    const newPred = {
-      id: 'pred_' + uuidv4().slice(0, 8),
-      ...prediction,
+    users.push(newUserObj);
+    return newUserObj;
+  },
+
+  async getAllUsers() {
+    const db = await connectDB();
+    if (db) {
+      try {
+        const list = await User.find({}).sort({ createdAt: -1 });
+        if (list && list.length > 0) return list;
+      } catch (err) {
+        console.warn('MongoDB list users fallback:', err.message);
+      }
+    }
+    return users;
+  },
+
+  async updateUserRole(userId, newRole) {
+    const db = await connectDB();
+    if (db) {
+      try {
+        const updated = await User.findByIdAndUpdate(userId, { role: newRole }, { new: true });
+        if (updated) return updated;
+      } catch (err) {
+        console.warn('MongoDB role update fallback:', err.message);
+      }
+    }
+    const user = users.find(u => u.id === userId || u._id === userId);
+    if (user) {
+      user.role = newRole;
+      return user;
+    }
+    return null;
+  },
+
+  // --- Predictions ---
+  async addPrediction(predData) {
+    const newRecord = {
+      id: 'pred_' + Date.now(),
+      _id: 'pred_' + Date.now(),
+      ...predData,
       timestamp: new Date().toISOString()
     };
-    this.predictions.unshift(newPred);
-    return newPred;
-  }
 
-  findPredictionById(id) {
-    return this.predictions.find(p => p.id === id);
-  }
-
-  getUserPredictions(userId, { limit = 20, page = 1, category = null } = {}) {
-    let list = this.predictions.filter(p => p.userId === userId);
-    if (category && category !== 'All') {
-      list = list.filter(p => p.category.toLowerCase() === category.toLowerCase());
+    const db = await connectDB();
+    if (db) {
+      try {
+        const saved = await ScanHistory.create(newRecord);
+        return saved;
+      } catch (err) {
+        console.warn('MongoDB scan save fallback:', err.message);
+      }
     }
-    const total = list.length;
-    const startIndex = (page - 1) * limit;
-    const paginated = list.slice(startIndex, startIndex + limit);
-    return { list: paginated, total, page, pages: Math.ceil(total / limit) || 1 };
-  }
 
-  deletePrediction(id, userId) {
-    const index = this.predictions.findIndex(p => p.id === id && p.userId === userId);
+    predictions.unshift(newRecord);
+    return newRecord;
+  },
+
+  async findPredictionById(id) {
+    const db = await connectDB();
+    if (db) {
+      try {
+        const record = await ScanHistory.findById(id).catch(() => null);
+        if (record) return record;
+      } catch (err) {}
+    }
+    return predictions.find(p => p.id === id || p._id === id) || null;
+  },
+
+  async getUserPredictions(userId, { page = 1, limit = 10, category = null } = {}) {
+    const db = await connectDB();
+    if (db) {
+      try {
+        const query = { userId };
+        if (category && category !== 'All') query.category = category;
+        const total = await ScanHistory.countDocuments(query);
+        const list = await ScanHistory.find(query)
+          .sort({ timestamp: -1 })
+          .skip((page - 1) * limit)
+          .limit(limit);
+        return { total, page, pages: Math.ceil(total / limit) || 1, list };
+      } catch (err) {}
+    }
+
+    let filtered = predictions.filter(p => p.userId === userId);
+    if (category && category !== 'All') {
+      filtered = filtered.filter(p => p.category.toLowerCase().includes(category.toLowerCase()));
+    }
+    const total = filtered.length;
+    const start = (page - 1) * limit;
+    return {
+      total,
+      page,
+      pages: Math.ceil(total / limit) || 1,
+      list: filtered.slice(start, start + limit)
+    };
+  },
+
+  async deletePrediction(id, userId) {
+    const db = await connectDB();
+    if (db) {
+      try {
+        await ScanHistory.findOneAndDelete({ _id: id, userId });
+      } catch (err) {}
+    }
+    const index = predictions.findIndex(p => (p.id === id || p._id === id) && p.userId === userId);
     if (index !== -1) {
-      this.predictions.splice(index, 1);
+      predictions.splice(index, 1);
       return true;
     }
-    return false;
-  }
+    return true;
+  },
 
-  // Badges & Gamification
+  async getAllPredictions() {
+    const db = await connectDB();
+    if (db) {
+      try {
+        const list = await ScanHistory.find({}).sort({ timestamp: -1 });
+        if (list && list.length > 0) return list;
+      } catch (err) {}
+    }
+    return predictions;
+  },
+
+  // --- Recycling Centers ---
+  async getRecyclingCenters({ category = null } = {}) {
+    const db = await connectDB();
+    if (db) {
+      try {
+        const list = await RecyclingCenter.find({ active: true });
+        if (list && list.length > 0) {
+          if (category && category !== 'All') {
+            return list.filter(c => c.acceptedMaterials.some(m => m.toLowerCase().includes(category.toLowerCase())));
+          }
+          return list;
+        }
+      } catch (err) {}
+    }
+
+    let list = centers.filter(c => c.active);
+    if (category && category !== 'All') {
+      list = list.filter(c => c.acceptedMaterials.some(m => m.toLowerCase().includes(category.toLowerCase())));
+    }
+    return list;
+  },
+
+  async addRecyclingCenter(centerData) {
+    const newCenter = {
+      id: 'ctr_' + Date.now(),
+      _id: 'ctr_' + Date.now(),
+      ...centerData,
+      verified: true,
+      active: true,
+      createdAt: new Date().toISOString()
+    };
+
+    const db = await connectDB();
+    if (db) {
+      try {
+        const saved = await RecyclingCenter.create(newCenter);
+        return saved;
+      } catch (err) {}
+    }
+
+    centers.push(newCenter);
+    return newCenter;
+  },
+
+  async updateRecyclingCenter(id, centerData) {
+    const db = await connectDB();
+    if (db) {
+      try {
+        const updated = await RecyclingCenter.findByIdAndUpdate(id, centerData, { new: true });
+        if (updated) return updated;
+      } catch (err) {}
+    }
+
+    const center = centers.find(c => c.id === id || c._id === id);
+    if (center) {
+      Object.assign(center, centerData);
+      return center;
+    }
+    return null;
+  },
+
+  async deleteRecyclingCenter(id) {
+    const db = await connectDB();
+    if (db) {
+      try {
+        await RecyclingCenter.findByIdAndDelete(id);
+      } catch (err) {}
+    }
+    const idx = centers.findIndex(c => c.id === id || c._id === id);
+    if (idx !== -1) {
+      centers.splice(idx, 1);
+      return true;
+    }
+    return true;
+  },
+
+  // --- Municipal Alerts ---
+  async getMunicipalAlerts() {
+    const db = await connectDB();
+    if (db) {
+      try {
+        const list = await MunicipalAlert.find({ active: true }).sort({ createdAt: -1 });
+        if (list && list.length > 0) return list;
+      } catch (err) {}
+    }
+    return municipalAlerts.filter(a => a.active);
+  },
+
+  async addMunicipalAlert(alertData) {
+    const newAlert = {
+      id: 'alt_' + Date.now(),
+      _id: 'alt_' + Date.now(),
+      ...alertData,
+      active: true,
+      createdAt: new Date().toISOString()
+    };
+
+    const db = await connectDB();
+    if (db) {
+      try {
+        const saved = await MunicipalAlert.create(newAlert);
+        return saved;
+      } catch (err) {}
+    }
+
+    municipalAlerts.unshift(newAlert);
+    return newAlert;
+  },
+
+  async deleteMunicipalAlert(id) {
+    const db = await connectDB();
+    if (db) {
+      try {
+        await MunicipalAlert.findByIdAndDelete(id);
+      } catch (err) {}
+    }
+    const idx = municipalAlerts.findIndex(a => a.id === id || a._id === id);
+    if (idx !== -1) {
+      municipalAlerts.splice(idx, 1);
+      return true;
+    }
+    return true;
+  },
+
+  // --- Badges ---
   checkAndAwardBadges(user) {
-    const newlyUnlocked = [];
-    const existingBadgeIds = new Set(user.badges.map(b => b.badgeId));
+    const newlyAwarded = [];
+    const stats = user.stats || {};
+    const existingBadges = new Set(user.badges || []);
 
-    // 1. Seedling Sorter
-    if (!existingBadgeIds.has('seedling_sorter') && user.stats.totalScans >= 1) {
-      user.badges.push({ badgeId: 'seedling_sorter', unlockedAt: new Date().toISOString() });
-      newlyUnlocked.push(this.badges.find(b => b.id === 'seedling_sorter'));
+    if (user.role === 'super_admin' && !existingBadges.has('super_admin_crest')) {
+      newlyAwarded.push({ id: 'super_admin_crest', name: 'Super Admin Crest', icon: '👑', desc: 'Municipal Supreme Administrator' });
+      existingBadges.add('super_admin_crest');
+    }
+    if (stats.totalScans >= 1 && !existingBadges.has('first_scan')) {
+      newlyAwarded.push({ id: 'first_scan', name: 'Eco Explorer', icon: '🌱', desc: 'Classified your first waste item' });
+      existingBadges.add('first_scan');
+    }
+    if (stats.totalPlasticDivertedKg >= 5 && !existingBadges.has('plastic_diverter')) {
+      newlyAwarded.push({ id: 'plastic_diverter', name: 'Ocean Savior', icon: '🌊', desc: 'Diverted 5kg+ of plastic from oceans' });
+      existingBadges.add('plastic_diverter');
+    }
+    if (stats.totalOrganicCompostedKg >= 10 && !existingBadges.has('compost_master')) {
+      newlyAwarded.push({ id: 'compost_master', name: 'Compost Virtuoso', icon: '🍃', desc: 'Generated 10kg+ organic bio-compost' });
+      existingBadges.add('compost_master');
+    }
+    if (stats.totalEWasteRecoveredKg >= 2 && !existingBadges.has('circuit_miner')) {
+      newlyAwarded.push({ id: 'circuit_miner', name: 'Urban Gold Miner', icon: '⚡', desc: 'Recovered precious metals from e-waste' });
+      existingBadges.add('circuit_miner');
+    }
+    if (user.currentStreak >= 7 && !existingBadges.has('streak_7d')) {
+      newlyAwarded.push({ id: 'streak_7d', name: 'Consistency Champion', icon: '🔥', desc: 'Maintained a 7-day segregation streak' });
+      existingBadges.add('streak_7d');
     }
 
-    // 2. Week Warrior (7+ day streak)
-    if (!existingBadgeIds.has('week_warrior') && user.currentStreak >= 7) {
-      user.badges.push({ badgeId: 'week_warrior', unlockedAt: new Date().toISOString() });
-      newlyUnlocked.push(this.badges.find(b => b.id === 'week_warrior'));
-    }
-
-    // 3. Master Recycler (20+ scans)
-    if (!existingBadgeIds.has('master_recycler') && user.stats.totalScans >= 20) {
-      user.badges.push({ badgeId: 'master_recycler', unlockedAt: new Date().toISOString() });
-      newlyUnlocked.push(this.badges.find(b => b.id === 'master_recycler'));
-    }
-
-    // 4. Urban Miner (E-waste logged)
-    if (!existingBadgeIds.has('urban_miner') && user.stats.totalEWasteRecoveredKg > 0) {
-      user.badges.push({ badgeId: 'urban_miner', unlockedAt: new Date().toISOString() });
-      newlyUnlocked.push(this.badges.find(b => b.id === 'urban_miner'));
-    }
-
-    // 5. Carbon Champion (10+ kg CO2)
-    if (!existingBadgeIds.has('carbon_champion') && user.stats.totalCo2SavedKg >= 10.0) {
-      user.badges.push({ badgeId: 'carbon_champion', unlockedAt: new Date().toISOString() });
-      newlyUnlocked.push(this.badges.find(b => b.id === 'carbon_champion'));
-    }
-
-    // 6. Zero Waste Hero (1000+ points)
-    if (!existingBadgeIds.has('zero_waste_hero') && user.ecoPoints >= 1000) {
-      user.badges.push({ badgeId: 'zero_waste_hero', unlockedAt: new Date().toISOString() });
-      newlyUnlocked.push(this.badges.find(b => b.id === 'zero_waste_hero'));
-    }
-
-    return newlyUnlocked;
+    user.badges = Array.from(existingBadges);
+    return newlyAwarded;
   }
-}
+};
 
-const storeInstance = new Store();
-module.exports = storeInstance;
+module.exports = store;

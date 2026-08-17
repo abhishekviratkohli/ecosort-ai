@@ -51,8 +51,8 @@ export default function App() {
         })
         .catch(() => removeAuthToken());
     } else {
-      // Default to Demo user Aarav on first load for a seamless out-of-the-box experience
-      handleSelectDemoUser('usr_aarav_001');
+      // Default to Super Admin Abhishek Singh on first load
+      handleSelectDemoUser('usr_super_000');
     }
   }, []);
 
@@ -63,11 +63,12 @@ export default function App() {
       if (res.success) {
         const selected = res.demoUsers.find(u => u.id === userId) || res.demoUsers[0];
         const passwordMap = {
-          'usr_aarav_001': 'Password123!',
-          'usr_priya_002': 'Password123!',
-          'usr_admin_003': 'AdminSecure2026!'
+          'usr_super_000': 'superpassword',
+          'usr_admin_003': 'adminpassword',
+          'usr_aarav_001': 'password123',
+          'usr_priya_002': 'password123'
         };
-        const loginRes = await api.login(selected.email, passwordMap[selected.id] || 'Password123!');
+        const loginRes = await api.login(selected.email, passwordMap[selected.id] || 'password123');
         if (loginRes.success) {
           const meRes = await api.getMe();
           if (meRes.success) {
@@ -178,7 +179,10 @@ export default function App() {
 
         {activeTab === 'admin' && (
           <div className="pt-8">
-            <AdminAnalytics />
+            <AdminAnalytics 
+              currentUser={currentUser}
+              onOpenAuthModal={() => setIsAuthOpen(true)}
+            />
           </div>
         )}
       </main>

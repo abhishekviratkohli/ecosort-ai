@@ -16,13 +16,19 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
+    "mongoose": "^9.9.2",
     "multer": "^1.4.5-lts.1",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
   },
-  "keywords": ["waste-management", "ai", "sustainability", "circular-economy"],
+  "keywords": [
+    "waste-management",
+    "ai",
+    "sustainability",
+    "circular-economy"
+  ],
   "author": "EcoSort AI Team",
   "license": "MIT"
 }
