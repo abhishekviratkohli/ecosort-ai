@@ -1,0 +1,268 @@
+{
+  "categories": [
+    {
+      "id": "organic",
+      "name": "Organic Waste",
+      "displayName": "Organic (Wet Waste)",
+      "binColor": "Green",
+      "hexCode": "#22C55E",
+      "badge": "🌱 Wet Organic",
+      "decompositionTimeline": "2 to 6 Weeks",
+      "decompositionYears": 0.08,
+      "co2OffsetPerKg": 0.52,
+      "waterOffsetLitersPerKg": 1.5,
+      "baseEcoPoints": 10,
+      "primaryAction": "Compost & Bio-Methanation",
+      "binGuidance": {
+        "binColor": "Green",
+        "binName": "Wet / Compostable Waste Bin",
+        "doNotMixWith": ["Plastic packaging", "Batteries", "Glass bottles"]
+      },
+      "subItems": [
+        {
+          "name": "Fruit & Vegetable Peels",
+          "prep": "Chop into smaller pieces to accelerate microbial aerobic breakdown.",
+          "upcycling": "Make citrus bio-enzymes for non-toxic home cleaning spray."
+        },
+        {
+          "name": "Cooked Leftover Food",
+          "prep": "Drain excess curry/oil; dispose in home compost bin or municipal wet bin.",
+          "upcycling": "Can be converted into nutrient-rich vermicompost or animal fodder if fresh."
+        },
+        {
+          "name": "Coffee Grounds & Tea Leaves",
+          "prep": "Rinse out milk/sugar if possible; sprinkle directly on garden soil as nitrogen booster.",
+          "upcycling": "Excellent organic fertilizer for roses and acid-loving plants."
+        },
+        {
+          "name": "Eggshells",
+          "prep": "Rinse and crush coarsely before adding to compost.",
+          "upcycling": "Rich in calcium carbonate; helps balance compost acidity and deters garden pests."
+        }
+      ]
+    },
+    {
+      "id": "plastic",
+      "name": "Plastic Waste",
+      "displayName": "Plastic (Dry Recyclable)",
+      "binColor": "Blue",
+      "hexCode": "#3B82F6",
+      "badge": "♻️ Dry Recyclable",
+      "decompositionTimeline": "100 to 500 Years",
+      "decompositionYears": 450,
+      "co2OffsetPerKg": 1.85,
+      "waterOffsetLitersPerKg": 24.0,
+      "baseEcoPoints": 15,
+      "primaryAction": "Mechanical Shredding & Repolymerization",
+      "binGuidance": {
+        "binColor": "Blue",
+        "binName": "Dry Recyclable Waste Bin",
+        "doNotMixWith": ["Food residues", "Wet organic scraps"]
+      },
+      "subItems": [
+        {
+          "name": "PET Beverage Bottles (Type 1)",
+          "prep": "Empty, rinse out residues, flatten completely to save volume, replace cap.",
+          "upcycling": "Transform into hanging self-watering herb pots or bird feeders."
+        },
+        {
+          "name": "HDPE Milk Jugs & Detergent Bottles (Type 2)",
+          "prep": "Rinse thoroughly to remove detergent surfactants; place in blue recycling bin.",
+          "upcycling": "Heavy-duty plastic can be converted into garage tool containers."
+        },
+        {
+          "name": "PP Food Containers (Type 5)",
+          "prep": "Wash off oil and food stains; grease contamination degrades recycling batch purity.",
+          "upcycling": "Reusable for hardware storage (screws, nails, craft supplies)."
+        },
+        {
+          "name": "Single-Use LDPE Plastic Bags",
+          "prep": "Bundle clean, dry bags together inside one bag before recycling.",
+          "upcycling": "Fuse with parchment paper and an iron into waterproof sturdy craft fabric."
+        }
+      ]
+    },
+    {
+      "id": "paper",
+      "name": "Paper & Cardboard",
+      "displayName": "Paper & Cardboard (Dry Recyclable)",
+      "binColor": "Blue",
+      "hexCode": "#F59E0B",
+      "badge": "📦 Fiber Recyclable",
+      "decompositionTimeline": "2 to 6 Months",
+      "decompositionYears": 0.35,
+      "co2OffsetPerKg": 1.20,
+      "waterOffsetLitersPerKg": 26.0,
+      "baseEcoPoints": 15,
+      "primaryAction": "Pulp Reprocessing into Recycled Fiber",
+      "binGuidance": {
+        "binColor": "Blue",
+        "binName": "Dry Recyclable Waste Bin (Paper / Cardboard)",
+        "doNotMixWith": ["Oily pizza boxes", "Waxed beverage cups"]
+      },
+      "subItems": [
+        {
+          "name": "Corrugated Shipping Boxes",
+          "prep": "Remove plastic packing tape, flatten completely, keep dry.",
+          "upcycling": "Cut into drawer dividers or use as weed barrier sheet in garden beds."
+        },
+        {
+          "name": "Office Paper & Notebooks",
+          "prep": "Remove metal spiral bindings and plastic covers.",
+          "upcycling": "Use blank reverse sides for scratch notes or shred for compost carbon layer."
+        },
+        {
+          "name": "Newspapers & Magazines",
+          "prep": "Bundle securely with natural jute twine; avoid wetting.",
+          "upcycling": "Use for streak-free window cleaning or wrapping fragile glassware."
+        }
+      ]
+    },
+    {
+      "id": "metal",
+      "name": "Metal Waste",
+      "displayName": "Metal (Infinitely Recyclable)",
+      "binColor": "Blue",
+      "hexCode": "#8B5CF6",
+      "badge": "🥫 Infinite Recyclable",
+      "decompositionTimeline": "50 to 200 Years",
+      "decompositionYears": 150,
+      "co2OffsetPerKg": 4.10,
+      "waterOffsetLitersPerKg": 40.0,
+      "baseEcoPoints": 20,
+      "primaryAction": "Smelting & Remelting (Saves 95% Energy vs Mining)",
+      "binGuidance": {
+        "binColor": "Blue",
+        "binName": "Dry Recyclable Waste Bin (Metals)",
+        "doNotMixWith": ["Pressurized flammable spray cans with liquid inside"]
+      },
+      "subItems": [
+        {
+          "name": "Aluminum Beverage Cans",
+          "prep": "Rinse, crush flat, deposit into metal/dry recycling.",
+          "upcycling": "Can be melted down and remanufactured into new cans in just 60 days."
+        },
+        {
+          "name": "Tin Food Cans",
+          "prep": "Rinse clean, push lid inside so sharp edges do not injure sanitation workers.",
+          "upcycling": "Punch small holes in pattern to create rustic candle luminaries or pen stands."
+        },
+        {
+          "name": "Scrap Iron & Hardware",
+          "prep": "Keep separate from domestic trash; sell to local scrap buy-back center.",
+          "upcycling": "High monetary trade-in value at certified scrap merchants."
+        }
+      ]
+    },
+    {
+      "id": "glass",
+      "name": "Glass Waste",
+      "displayName": "Glass (100% Recyclable)",
+      "binColor": "Blue",
+      "hexCode": "#06B6D4",
+      "badge": "🍶 100% Recyclable",
+      "decompositionTimeline": "1 Million+ Years",
+      "decompositionYears": 1000000,
+      "co2OffsetPerKg": 0.35,
+      "waterOffsetLitersPerKg": 2.0,
+      "baseEcoPoints": 15,
+      "primaryAction": "Cullet Crushing & Furnace Remelting",
+      "binGuidance": {
+        "binColor": "Blue",
+        "binName": "Dry Glass Recyclables Bin",
+        "doNotMixWith": ["Ceramics", "Pyrex cookware", "Mirror glass"]
+      },
+      "subItems": [
+        {
+          "name": "Clear Glass Bottles & Jars",
+          "prep": "Rinse residue, remove metal lids, handle carefully to avoid shattering.",
+          "upcycling": "Sterilize and reuse for kitchen spice storage, jams, or propagation vases."
+        },
+        {
+          "name": "Colored Glass Bottles (Amber/Green)",
+          "prep": "Segregate by color if local collection center requires color-sorting.",
+          "upcycling": "Turn into decorative garden border lanterns or candle holders."
+        }
+      ]
+    },
+    {
+      "id": "e_waste",
+      "name": "Electronic Waste (E-Waste)",
+      "displayName": "E-Waste (Urban Mining)",
+      "binColor": "Yellow",
+      "hexCode": "#EC4899",
+      "badge": "⚡ Urban Mining",
+      "decompositionTimeline": "Non-Biodegradable (Persistent Toxins)",
+      "decompositionYears": 2000,
+      "co2OffsetPerKg": 5.80,
+      "waterOffsetLitersPerKg": 80.0,
+      "baseEcoPoints": 30,
+      "primaryAction": "Authorized Dismantling & Precious Metal Recovery",
+      "recoverableMetals": ["Gold", "Silver", "Copper", "Palladium", "Cobalt", "Aluminum"],
+      "binGuidance": {
+        "binColor": "Yellow",
+        "binName": "Designated E-Waste Drop-Off Point",
+        "doNotMixWith": ["General trash", "Wet waste", "Landfill dumpsters"]
+      },
+      "subItems": [
+        {
+          "name": "Smartphones & Tablets",
+          "prep": "Backup data, perform factory reset, do not puncture battery, deposit at e-waste center.",
+          "upcycling": "Old phones can be converted into home security IP cameras or smart alarm clocks."
+        },
+        {
+          "name": "Cables, Chargers & Adapters",
+          "prep": "Bundle with a velcro tie; never burn for copper recovery (toxic dioxin hazard).",
+          "upcycling": "Trade in at authorized electronics buyback or take-back kiosks."
+        },
+        {
+          "name": "Printed Circuit Boards (PCBs)",
+          "prep": "Store in dry static-free box; surrender to authorized smelters.",
+          "upcycling": "1 metric ton of PCBs contains 40-800x more gold than 1 ton of mined gold ore."
+        }
+      ]
+    },
+    {
+      "id": "hazardous",
+      "name": "Hazardous & Sanitary Waste",
+      "displayName": "Hazardous / Sanitary (Specialized Disposal)",
+      "binColor": "Red",
+      "hexCode": "#EF4444",
+      "badge": "⚠️ Hazardous / Red Bin",
+      "decompositionTimeline": "Persistent Toxic Leaching Hazard",
+      "decompositionYears": 500,
+      "co2OffsetPerKg": 2.50,
+      "waterOffsetLitersPerKg": 50.0,
+      "baseEcoPoints": 25,
+      "primaryAction": "High-Temp Incineration / Hazardous Waste Secure Landfill (HWL)",
+      "warning": "DO NOT mix with standard trash. Toxic risk to groundwater and waste handlers.",
+      "binGuidance": {
+        "binColor": "Red",
+        "binName": "Hazardous & Bio-Medical Waste Bin",
+        "doNotMixWith": ["Compostable organics", "Standard recyclables"]
+      },
+      "subItems": [
+        {
+          "name": "Household Dry Cell & Lithium Batteries",
+          "prep": "Tape both battery terminals with clear scotch tape to prevent short circuits.",
+          "upcycling": "Drop in designated battery collection kiosks found in electronics stores."
+        },
+        {
+          "name": "Expired Medications & Syringes",
+          "prep": "Keep in original packaging; return to pharmacy take-back drop boxes. Syringes in rigid sharps bin.",
+          "upcycling": "Never flush down toilet or sink to prevent antibiotic resistance and aquatic toxicity."
+        },
+        {
+          "name": "Paint Cans & Solvents",
+          "prep": "Allow small residual paint to dry out completely before disposal; deposit liquid cans at hazmat day.",
+          "upcycling": "Donate leftover half-full paint cans to local community theater or school projects."
+        },
+        {
+          "name": "Fluorescent Bulbs & CFLs",
+          "prep": "Wrap carefully in bubble wrap/paper to prevent mercury vapor release if shattered.",
+          "upcycling": "Take to municipal hazardous collection; mercury is reclaimed under vacuum distillation."
+        }
+      ]
+    }
+  ]
+}
